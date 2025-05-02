@@ -1,7 +1,17 @@
-import React from "react";
+import { auth } from "@/auth";
+import SignOutButton from "@/components/signOut-button";
 
-const DashboardPage = () => {
-  return <div>DashboardPage</div>;
-};
+export default async function DashboardPage() {
+  const session = await auth();
 
-export default DashboardPage;
+  if (!session) {
+    return <div>Not authenticated</div>;
+  }
+
+  return (
+    <div className="container">
+      <pre>{JSON.stringify(session, null, 2)}</pre>
+      <SignOutButton />
+    </div>
+  );
+}
