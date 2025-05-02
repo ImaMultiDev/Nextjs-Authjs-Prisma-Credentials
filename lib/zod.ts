@@ -10,7 +10,7 @@ export const loginSchema = object({
     .max(32, "Password must be less than 32 characters"),
 });
 
-export const RegisterSchema = object({
+export const registerSchema = object({
   email: string({ required_error: "Email is required" })
     .min(1, "Email is required")
     .email("Invalid email"),
@@ -18,8 +18,8 @@ export const RegisterSchema = object({
     .min(1, "Password is required")
     .min(6, "Password must be more than 6 characters")
     .max(32, "Password must be less than 32 characters"),
-  repeatPassword: string({ required_error: "Password is required" })
-    .min(1, "Password is required")
-    .min(6, "Password must be more than 6 characters")
-    .max(32, "Password must be less than 32 characters"),
+  name: string({ required_error: "Name is required" })
+    .min(1, "Name is required")
+    .min(3, "Name must be more than 3 characters")
+    .max(32, "Name must be less than 32 characters"),
 });
