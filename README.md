@@ -14,10 +14,12 @@ Este proyecto implementa autenticación avanzada con Auth.js utilizando Next.js,
 - [4. Instalación y configuración inicial de Auth.js](#4-instalación-y-configuración-inicial-de-authjs)
 - [5. Configuración de Prisma ORM y Base de Datos PostgreSQL](#5-configuración-de-prisma-orm-y-base-de-datos-postgresql)
 - [6. Implementación Providers de autenticación](#6-implementación-providers-de-autenticación)
-- [7. Sesiones JWT y gestión de usuarios](#7-sesiones-jwt-y-gestión-de-usuarios)
-- [8. Gestión avanzada de usuarios](#8-gestión-avanzada-de-usuarios)
-- [9. Verificación de Email](#9-verificación-de-email)
-- [10. Mejoras de experiencia de usuario (UX)](#10-mejoras-de-experiencia-de-usuario-ux)
+- [7. Capturar los errores con Auth-error](#7-capturar-los-errores-con-auth-error)
+- [8. Configurar base de datos con prisma](#8-configurar-base-de-datos-con-prisma)
+- [9. Sesiones JWT y gestión de usuarios](#9-sesiones-jwt-y-gestión-de-usuarios)
+- [10. Gestión de usuarios y roles](#10-gestión-de-usuarios-y-roles)
+- [11. Middleware (protección rutas)](#11-middleware-protección-rutas)
+- [12. Verificación de Email (Resend)](#12-verificación-de-email-resend)
 
 ---
 
@@ -271,7 +273,7 @@ Si accedemos a **_prisma studio_** podemos dar doble click en uno de los usuario
 
 ---
 
-### 9. Middleware (protección rutas)
+### 11. Middleware (protección rutas)
 
 El middleware también nos permite proteger las rutas que no deseamos que sean públicas
 
@@ -316,7 +318,7 @@ export const config = {
 
 ---
 
-### 9. Verificación de Email (Resend)
+### 12. Verificación de Email (Resend)
 
 Para verificar el e-mail del usuario disponemos en nuestro [prisma/schema.prisma](prisma/schema.prisma) del modelo **_VerificationToken_**
 
