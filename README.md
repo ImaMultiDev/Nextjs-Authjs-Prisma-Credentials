@@ -203,7 +203,7 @@ Para mejorar el rendimiento Prisma, podemos configurar la instancia de Prisma p
 
 Debemos implementar una solución a problemas de compatibilidad experimentados con **Edge**, la solución alternativa original para el tiempo de ejecución de la base de datos, que consiste en dividir la configuración en dos.
 
-##### [Configuración dividida](https://authjs.dev/guides/edge-compatibility#split-config)
+##### [Configuración dividida🌐](https://authjs.dev/guides/edge-compatibility#split-config)
 
 ---
 
@@ -212,15 +212,15 @@ Debemos implementar una solución a problemas de compatibilidad experimentados c
 https://authjs.dev/getting-started/authentication/credentials
 
 Una vez tenemos listos los archivos de configuración de auth para el Provider.
-[auth.ts](auth.ts)
+[auth.ts🌐](auth.ts)
 [auth.config.ts](auth.config.ts)
 
 Vamos a crear un archivo para la lógica del lado del servidor:
-[actions/auth-actions.ts](actions/auth-actions.ts)
+[actions/auth-actions.ts🌐](actions/auth-actions.ts)
 
 Una vez tenemos la acción que deseamos ejecutar en el servidor para acceder con las credenciales a la sesión con **_jwt_**, ahora en el lado del cliente, en el formulario podemos llamar a esta función de forma asincrona:
 
-[components/form-login.tsx](components/form-login.tsx)
+[components/form-login.tsx🌐](components/form-login.tsx)
 
 ```tsx
 "use client";
@@ -230,19 +230,172 @@ async function onSubmit(values: z.infer<typeof loginSchema>) {
 }
 ```
 
-[SingOut Client](https://authjs.dev/getting-started/session-management/login#:~:text=%7D-,Desconectar,-El%20cierre%20de)
+Vamos a configurar también la función de **SingOut** de Next-Auth, pero esta vez lo haremos directamente **del lado del cliente**
+
+[SingOut Client🌐](https://authjs.dev/getting-started/session-management/login#:~:text=%7D-,Desconectar,-El%20cierre%20de)
+
+Lo importamos en la página del dashboard para ver su funcionalidad
 
 ---
 
-### 7. Sesiones JWT y gestión de usuarios
+### 7. Capturar los errores con Auth-error
+
+[authjs.AuthError🌐](https://authjs.dev/reference/core/errors#:~:text=AuthError-,AuthError,-Base%20error%20class)
 
 ---
 
-### 8. Gestión de usuarios y roles
+### 8. Configurar Base de Datos con Prisma
+
+[Auth.js-prisma-postgresql🌐](https://authjs.dev/getting-started/adapters/prisma#:~:text=consultas%20en%20%C3%A9l.-,Esquema,-Necesita%20usar%20al)
+
+---
+
+### 9. Sesiones JWT y gestión de usuarios
+
+---
+
+### 10. Gestión de usuarios y roles
+
+Para configurar los roles y permitir que haya opción de **_Admin_** en la aplicación lo primero sería dirigirnos a la ruta ==app\(protected)\admin\page.tsx== y hacer que solo puedan acceder a ella los usuarios que tengan **_Admin_** como **_Role_**
+
+[app/(protected)/admin/page.tsx🌐](<app/(protected)/admin/page.tsx>)
+
+De esta forma si el usuario es Admin verá el contenido de la ruta pero si no lo es le mostrará:
+"You are not admin"
+
+Pero esto no va a funcionar ya que **_role_** esta definido tan solo en la base de datos, no tenemos nada sobre el en lo que viene a ser la lógica de la aplicación.
+
+Si accedemos a **_prisma studio_** podemos dar doble click en uno de los usuarios en su campo de **role** y asignarle "**_admin_**" directamente desde la base de datos, pero aun así como ya digo no tenemos una lógica que nos permita saber que ese usuario es un **_admin_** dentro de la aplicación.
+
+##### [Extendiendo la Sesión🌐](https://authjs.dev/guides/extending-the-session)
+
+---
+
+### 9. Middleware (protección rutas)
+
+El middleware también nos permite proteger las rutas que no deseamos que sean públicas
+
+[middleware.ts🌐](middleware.ts)
+
+```typescript
+import NextAuth from "next-auth";
+import authConfig from "./auth.config";
+import { NextResponse } from "next/server";
+
+// 15.00- Borramos la exportación de la configuración por defecto "authConfig" (15.01)
+const { auth: middleware } = NextAuth(authConfig);
+
+// 15.05- Declaramos un array con las rutas que queremos hacer públicas
+const publicRoutes = ["/", "/login", "/register", "/api/auth/verify-email"];
+
+// 15.01- Ahora extendemos "middleware" exportando nuestra propia configuración por defecto (15.02)
+export default middleware((req) => {
+  // 15.02- Arrow fun del "request", para destructurar sacando "nextUrl" y "auth(sesión usuario)" (15.03)
+  const { nextUrl, auth } = req; // 15.03- Estos vienen de NextAuthConfig (auth.config.ts)
+  const isLoggedIn = !!auth?.user; // 15.04- Añadir doble exclamación nos devuelve "true" o "false"
+
+  // PROTEGER /dashboard /admin
+  // 15.06- Si no esta incluido en publicRoutes y no esta logeado (15.07)
+  if (!publicRoutes.includes(nextUrl.pathname) && !isLoggedIn) {
+    // 15.07- Retornamos un NextResponse.redirect a la url "login" impidiendo el acceso
+    return NextResponse.redirect(new URL("/login", nextUrl));
+  }
+  //15.08- En caso contrario, retornamos NextResponse.next(aceptando el acceso)
+  return NextResponse.next();
+});
+
+export const config = {
+  matcher: [
+    // Omite los elementos internos de Next.js y todos los archivos estáticos, a menos que se encuentren en los parámetros de búsqueda
+    "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
+    // Ejecutar siempre para rutas API
+    "/(api|trpc)(.*)",
+  ],
+};
+```
 
 ---
 
 ### 9. Verificación de Email (Resend)
+
+Para verificar el e-mail del usuario disponemos en nuestro [prisma/schema.prisma](prisma/schema.prisma) del modelo **_VerificationToken_**
+
+```typescript
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@id([identifier, token])
+}
+```
+
+Ahora nos dirigimos a nuestro archivo de configuración de Auth donde asignaremos la lógica correspondiente para la verificación.
+Pero antes vamos a instalar algo que nos será necesario para generar los tokens que expiraran cada 24 horas y se trata de **nano**
+
+```bash
+npm i nanoid
+```
+
+Una vez que disponemos de este, vamos a configurar la verificación de user por e-mail:
+
+[auth.config.ts🌐](auth.config.ts)
+
+#### RESEND
+
+https://resend.com/docs/send-with-nextjs
+Como proveedor de servicio para el envio de correos de verificación vamos a usar **_Resend_**, así que comenzamos accediendo a su plataforma
+En Add Api Key le damos nombre a la Api (NextAuthTest), Permission y Domain por defecto.
+
+Una vez tenemos la API en nuestras variables de entorno, instalamos el servicio
+
+```bash
+npm i resend
+```
+
+Una vez instalado creamos un archivo para implementar la configuración de **_Resend_**
+[lib/mail.ts🌐](lib/mail.ts)
+
+Como podemos ver en el contenido del mail, tenemos una variable de enttorno que debemos añadir a nuestro `.env` Y de momento para el desarrollo pondremos lo siguiente:
+
+```
+NEXTAUTH_URL="http://localhost:3000"
+```
+
+Una vez tenemos ya la parte del servicio configurada volvemos a `auth.config.ts` para completar la lógica de enviar email de verificación. Simplemente creamos una constante a la que le asignamos la función (await) sendEmailVerification dandole como parámetros "email" y "token"
+
+[auth.config.ts](auth.config.ts)
+
+Ahora necesitamos crear la ruta que le indicamos en el archivo `middleware.ts` en las rutas públicas
+
+```typescript
+const publicRoutes = ["/", "/login", "/register", "/api/auth/verify-email"];
+```
+
+Que a su vez también aparece en el link del contenido de `lib/mail.ts`
+
+```typescript
+ <a href="${process.env.NEXTAUTH_URL}/api/auth/verify-email?token=${token}">Verify email</a>
+```
+
+Una vez comprobado que coinciden creamos la ruta [app/api/auth/verify-email/route.ts](app/api/auth/verify-email/route.ts) donde inicialmente recibimos el token
+
+```typescript
+import { type NextRequest } from "next/server";
+
+export async function GET(request: NextRequest) {
+  const searchParams = request.nextUrl.searchParams;
+  const token = searchParams.get("token");
+  return Response.json({ token });
+}
+```
+
+E implementamos las verificaciones del token:
+[app/api/auth/verify-email/route.ts🌐](app/api/auth/verify-email/route.ts)
+
+De este modo, nos faltaría dirigirnos a [app/(auth)/login/page.tsx🌐](<app/(auth)/login/page.tsx>) para que reciba el Query Parameter adecuadamente
+
+Y por último, debemos añadir como hemos asignado a [components/form-login.tsx🌐](components/form-login.tsx) ese props: "**isVerified**"
 
 ---
 
